@@ -6,12 +6,11 @@
 
 #include "Table.h"
 
-
 std::ostream &operator<<(std::ostream &os, const Table &table) {
     std::vector<std::vector<std::string>> string_repr;
     string_repr.reserve(table.nrow() + 1);
     string_repr.push_back(table.header);
-    for (auto& row : table.rows) {
+    for (auto &row : table.rows) {
         string_repr.emplace_back();
         string_repr.reserve(table.ncol());
         for (auto el : row) {
@@ -22,12 +21,12 @@ std::ostream &operator<<(std::ostream &os, const Table &table) {
     colw.reserve(table.ncol());
     for (size_t col = 0; col < string_repr.back().size(); ++col) {
         size_t max = 0;
-        for (auto & row : string_repr) {
-            max = std::max(max , row[col].size() + 2);
+        for (auto &row : string_repr) {
+            max = std::max(max, row[col].size() + 2);
         }
         colw.push_back(max);
     }
-    for (auto& row : string_repr) {
+    for (auto &row : string_repr) {
         for (size_t i = 0; i < row.size(); ++i) {
             os << std::setw(colw[i]) << row[i];
         }
@@ -37,32 +36,32 @@ std::ostream &operator<<(std::ostream &os, const Table &table) {
 }
 
 Table::Table(const std::string &header_row_str) {
-    static std::regex ts_names{R"(\S+(\s\S+)*\s*)"};
+    static std::regex ts_names{R"(\w+(\s\w+)*\s*)"};
 
     if (!std::regex_match(header_row_str, ts_names)) {
         throw std::runtime_error{"Header row is not tab (or space) separated"};
     }
 
-    static std::regex words{R"(\S+)"};
+    static std::regex words{R"(\w+)"};
     auto start_iter = std::sregex_token_iterator(header_row_str.cbegin(), header_row_str.cend(), words);
     auto stop_iter = std::sregex_token_iterator{};
     header.reserve(std::distance(start_iter, stop_iter));
-    for(auto it = start_iter; it != stop_iter; ++it) {
+    for (auto it = start_iter; it != stop_iter; ++it) {
         header.push_back(*it);
     }
 }
 
-void Table::add_row(std::string row_str) {
+void Table::add_row(const std::string &row_str) {
     static std::regex number{R"([+-]?(\d+(\.\d*)?)|(\.\d*))"};
     auto start_iter = std::sregex_token_iterator(row_str.cbegin(), row_str.cend(), number);
     auto stop_iter = std::sregex_token_iterator{};
     auto len = std::distance(start_iter, stop_iter);
     if (len != ncol()) {
-        throw std::runtime_error{"Failed to parse row"};
+        throw std::runtime_error{"Failed to parse row \n" + row_str};
     }
     rows.emplace_back();
     rows.back().reserve(len);
-    for(auto it = start_iter; it != stop_iter; ++it) {
+    for (auto it = start_iter; it != stop_iter; ++it) {
         double t;
         std::stringstream{*it} >> t;
         rows.back().push_back(t);
@@ -87,11 +86,8 @@ std::istream &operator>>(std::istream &is, Table &table) {
         if (s.empty()) {
             break;
         }
-        try {
-            table.add_row(s);
-        } catch (std::runtime_error& e) {
-            throw std::runtime_error("Failed to parse at this row:\n " + s);
-        }
+
+        table.add_row(s);
 
     }
     return is;

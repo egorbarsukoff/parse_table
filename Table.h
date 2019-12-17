@@ -20,7 +20,7 @@ struct Table {
     [[nodiscard]] size_t nrow() const;
     explicit Table(const std::string &header_row_str);
     Table() = default;
-    void add_row(std::string row_str);
+    void add_row(const std::string& row_str);
     static Table from_stream(std::istream& is);
     friend std::istream& operator>>(std::istream & is, Table & table);
     friend std::ostream &operator<<(std::ostream &os, const Table &table);
