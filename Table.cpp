@@ -6,6 +6,8 @@
 
 #include "Table.h"
 
+using namespace std::string_literals;
+
 std::ostream &operator<<(std::ostream &os, const Table &table) {
     std::vector<std::vector<std::string>> string_repr;
     string_repr.reserve(table.nrow() + 1);
@@ -36,37 +38,33 @@ std::ostream &operator<<(std::ostream &os, const Table &table) {
 }
 
 Table::Table(const std::string &header_row_str) {
-    static std::regex ts_names{R"(\w+(\s\w+)*\s*)"};
-
-    if (!std::regex_match(header_row_str, ts_names)) {
-        throw std::runtime_error{"Header row is not tab (or space) separated"};
-    }
-
-    static std::regex words{R"(\w+)"};
-    auto start_iter = std::sregex_token_iterator(header_row_str.cbegin(), header_row_str.cend(), words);
+    static std::regex spaces_re{R"(\s+)"};
+    auto start_iter = std::sregex_token_iterator(header_row_str.cbegin(), header_row_str.cend(), spaces_re, -1);
     auto stop_iter = std::sregex_token_iterator{};
     header.reserve(std::distance(start_iter, stop_iter));
-    for (auto it = start_iter; it != stop_iter; ++it) {
-        header.push_back(*it);
-    }
+    std::transform(start_iter, stop_iter, std::back_inserter(header), [] (auto& match) {
+        return match.str();
+    });
 }
 
 void Table::add_row(const std::string &row_str) {
-    static std::regex number{R"([+-]?(\d+(\.\d*)?)|(\.\d*))"};
-    auto start_iter = std::sregex_token_iterator(row_str.cbegin(), row_str.cend(), number);
+    static std::regex number{R"([+-]?(\d+([.]\d*)?(e[+-]?\d+)?|[.]\d+(e[+-]?\d+)?))", std::regex::icase};
+    static std::regex spaces_re{R"(\s+)"};
+    auto start_iter = std::sregex_token_iterator(row_str.cbegin(), row_str.cend(), spaces_re, -1);
     auto stop_iter = std::sregex_token_iterator{};
     auto len = std::distance(start_iter, stop_iter);
     if (len != ncol()) {
-        throw std::runtime_error{"Failed to parse row \n" + row_str};
+        throw std::runtime_error{"Wrong number of columns in row \n"s + row_str};
     }
     rows.emplace_back();
     rows.back().reserve(len);
-    for (auto it = start_iter; it != stop_iter; ++it) {
-        double t;
-        std::stringstream{*it} >> t;
-        rows.back().push_back(t);
-    }
-
+    std::transform(start_iter, stop_iter, std::back_inserter(rows.back()), [] (auto& match) {
+        std::string s = match.str();
+        if (!std::regex_match(s, number)) {
+            throw std::runtime_error("Cannot parse "s + s);
+        }
+        return std::stod(s);
+    });
 }
 
 size_t Table::ncol() const {

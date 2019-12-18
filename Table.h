@@ -24,6 +24,7 @@ struct Table {
     static Table from_stream(std::istream& is);
     friend std::istream& operator>>(std::istream & is, Table & table);
     friend std::ostream &operator<<(std::ostream &os, const Table &table);
+private:
 };
 
 #endif //PARSE_TABLE__TABLE_H
